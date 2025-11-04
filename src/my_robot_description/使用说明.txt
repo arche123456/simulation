@@ -1,0 +1,83 @@
+launch只能用于一个ros包，所以创建了一个工作空间，其中ros包在src中，需要有package.xml和，CMakeLists.txt
+工作空间需要包括src（源码包）,install（可执行文件，库）,log(日志),build（编译产物）
+package.xml文件定义了这个包的元信息（如包名、版本、作者、依赖项等）而 CMakeLists.txt则规定了如何编译这个包
+其中包名称在package中有记录
+colcon build --packages-select my_robot_description
+在工作空间的根目录编译该工作空间，--packages-select表示只编译指定功能包
+source ~/wmq/wmq/navigation-ws/install/setup.bash
+让终端知道发现这个工作空间，可以使用vi在~/.bashrc中添加该句
+ros2 launch my_robot_description gazebo_launch.py
+运行程序
+ros2 launch turtlebot3_navigation2 navigation2.launch.py use_sim_time:=true map:=~/wmq/wmq/navigation-ws/src/my_robot_description/maps/7v7map.yaml
+指定使用仿真时间，使用指定的地图，没什么区别，在launch文件中已经有配置
+
+ros2 topic list -t可以查看话题和其消息类型
+/bt_navigator/transition_event [lifecycle_msgs/msg/TransitionEvent]行为树导航器生命周期状态变化
+/clock [rosgraph_msgs/msg/Clock]仿真时间（如果使用仿真的话）
+/cmd_vel [geometry_msgs/msg/Twist]​输出的最终速度指令，发送给机器人底盘
+/global_costmap/costmap [nav_msgs/msg/OccupancyGrid]全局代价地图，用于全局路径规划
+/global_costmap/costmap_raw [nav2_msgs/msg/Costmap]未经处理的全局代价地图原始数据
+/global_costmap/costmap_updates [map_msgs/msg/OccupancyGridUpdate]全局代价地图的增量更新
+/global_costmap/footprint [geometry_msgs/msg/Polygon]机器人的轮廓多边形（用于避障）
+/global_costmap/global_costmap/transition_event [lifecycle_msgs/msg/TransitionEvent]全局代价地图节点的生命周期事件
+/global_costmap/published_footprint [geometry_msgs/msg/PolygonStamped]带时间戳的已发布机器人轮廓
+/goal_pose [geometry_msgs/msg/PoseStamped]设定的导航目标点
+/joint_states [sensor_msgs/msg/JointState]机器人关节状态（如轮子转速）
+/local_costmap/costmap_raw [nav2_msgs/msg/Costmap]未经处理的局部代价地图原始数据
+/local_costmap/published_footprint [geometry_msgs/msg/PolygonStamped]带时间戳的已发布机器人轮廓（局部）
+/map [nav_msgs/msg/OccupancyGrid]静态的全局地图​（如SLAM建好的地图）
+/odom [nav_msgs/msg/Odometry]里程计信息，提供机器人的位姿和速度估计
+/parameter_events [rcl_interfaces/msg/ParameterEvent]参数变更事件（系统默认话题）
+/plan [nav_msgs/msg/Path]	规划出的全局路径
+/planner_server/transition_event [lifecycle_msgs/msg/TransitionEvent]全局路径规划器的生命周期事件
+/recoveries_server/transition_event [lifecycle_msgs/msg/TransitionEvent]恢复行为服务器的生命周期事件
+/robot_description [std_msgs/msg/String]机器人的URDF描述文件内容
+/rosout [rcl_interfaces/msg/Log]系统日志输出（系统默认话题）
+/scan [sensor_msgs/msg/LaserScan]激光雷达数据
+/tf [tf2_msgs/msg/TFMessage]坐标系变换关系
+/tf_static [tf2_msgs/msg/TFMessage]坐标系变换关系
+/waypoint_follower/transition_event [lifecycle_msgs/msg/TransitionEvent]路径点跟踪器的生命周期事件
+
+ros2 node list//查看当前节点
+/bt_navigator
+/bt_navigator_rclcpp_node
+/gazebo
+/gazebo_ros_rplidar_controller
+/mybot_controller
+/recoveries_server
+/recoveries_server_rclcpp_node
+/robot_state_publisher
+/transform_listener_impl_55d83faad3a0
+
+sudo apt install ros-foxy-joint-state-publisher//建模可视化功能包
+sudo apt install ros-foxy-joint-state-publisher-gui//关节活动功能包
+ros2 pkg create cpp01_urdf --build-type ament_cmake//创建一个名为cpp01_urdf的功能包
+在下面创建urdf文件夹，再在urdf底下创建urdf，xacro文件夹
+
+  <buildtool_depend>ament_cmake</buildtool_depend>#声明构建本包所需的构建系统工具
+  #声明本包在运行时所必须的其他功能包或库
+  <exec_depend>ros2launch</exec_depend>#提供ros launch功能
+  <exec_depend>xacro</exec_depend>#简化URDF机器人模型文件的编写
+  <exec_depend>robot_state_publisher</exec_depend>#订阅joint_states话题,根据机器人的URDF模型和收到的关节状态,发布到tf和tf_static话题的依赖
+  <exec_depend>joint_state_publisher</exec_depend>#读取URDF模型,查找所有非固定关节,并发布它们的位置、速度到joint_states话题的依赖
+  <exec_depend>rivz2</exec_depend>#ROS2中的可视化工具,用于显示机器人模型、传感器数据、地图的依赖
+
+  <test_depend>ament_lint_auto</test_depend>#声明仅在运行测试代码时才需要的额外依赖
+  <test_depend>ament_lint_common</test_depend>
+
+/*******************Cmake中*****************/
+project(rviz_wmq)
+project中应该是包名，构建时告诉系统，项目名称叫rviz_wmq
+install(DIRECTORY launch rviz urdf_wmq meshes
+  DESTINATION share/${PROJECT_NAME}
+)#将功能包源码空间中的几个重要资源递归地复制到install共享目录，确保在安装后这些资源可以被系统和其他程序找到和使用
+
+colcon build --packages-select rviz_wmq
+构建包
+. install/setup.bash
+source ~/wmq/navigation-ws/install/setup.bash
+刷新环境变量
+ros2 launch rviz_wmq wmq.launch.py
+运行节点脚本
+
+
